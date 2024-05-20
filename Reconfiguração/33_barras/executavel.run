@@ -22,6 +22,7 @@ data;
 
 include 33_barras.dat;
 
+
 #--------------------
 # solucionador
 

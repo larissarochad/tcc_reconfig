@@ -12,10 +12,10 @@ include 1_FluxoPotenciaNaoLinear.mod;
 data;
 
 
-include Sistema69_2.dat;
+#include Sistema69_2.dat;
 # include 119_barras.dat;
 #include 33_barras.dat;
-
+include 14_barras.dat;
 # solucionador 
 
 option solver knitro; 

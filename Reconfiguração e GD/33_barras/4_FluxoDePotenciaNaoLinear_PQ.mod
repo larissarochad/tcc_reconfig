@@ -81,6 +81,10 @@ param ke = 168;
  
 param Pgdmin{Ob} = 0; # Pot min ativa injetada pela GD
 param Pgdmax{Ob} = 500; # Pot max ativa injetada pela GD
+var Qgdmax{Ob};
+var Qgdmin{Ob};
+
+var Qgd{Ob};
 var Pgd{Ob}; # Pot ativa injetada pela GD
 #var Qgd{Ol}; # Pot reativa injetada pela GD
 param Ndg = 2;
@@ -101,7 +105,7 @@ subject to BalancoPotenciaAtiva{i in Ob}:
 
 #Balanco de Potencia Reativa
 subject to BalancoPotenciaReativa{i in Ob}:
-	sum{(k,i) in Ol}(Q[k,i]) - sum{(i,j) in Ol}( Q[i,j] + X[i,j] * Isqr[i,j] ) + QS[i] +(Pgd[i]*fp)  = QD[i];
+	sum{(k,i) in Ol}(Q[k,i]) - sum{(i,j) in Ol}( Q[i,j] + X[i,j] * Isqr[i,j] ) + QS[i] + Qgd[i] = QD[i];
 	
 #Queda de Tensao no circuito
 subject to QuedaTensao{(i,j) in Ol}:
@@ -220,3 +224,14 @@ subject to LinearizacaoP3{(i,j) in Ol, y in 1..Y}:
  
  subject to GD3:
  sum{i in Ob}(Wgd[i]) <= Ndg;
+ 
+ subject to GD4{i in Ob}: 
+ Qgd[i] <= Pgd[i] * fp;
+ 
+ subject to GD5{i in Ob}:
+ Qgdmin[i]<= Qgd[i];
+ 
+ subject to GD6{i in Ob}:
+ Qgd[i] <= Qgdmax[i]; 
+ 
+ 

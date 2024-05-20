@@ -74,12 +74,3 @@ let Vmax   := Vnom * 1.0;
 let Vmin   := Vnom * 0.9692;
 
 
-# Linearizacao
-for{(i,j) in Ol}{
-let DS[i,j] := (Vmax * Imax[i,j]) / Y;
-
-for {y in 1..Y}{
-let ms[i,j,y] := (2*y-1)*DS[i,j];
-}
-let ms[i,j,1] := ms[i,j,1] * 5/6;
-}

@@ -52,7 +52,7 @@ param N = card(Ob);
 
 # Para a linearização Vsqr * Isqr
 
-param S = 0;
+param S = 3;
 param DeltaV = (Vmax^2-Vmin^2)/(S+1);
 var xv{Ob, s in 1..S}, binary;
 var Pc{Ob, s in 1..S};
@@ -61,7 +61,7 @@ var Pc{Ob, s in 1..S};
 
 # Dados para a Linearizacao P^2 Q^2
 
-param Y = 22;
+param Y = 50;
 param DS{Ol};
 param ms{Ol, y in 1..Y};
 
@@ -77,17 +77,7 @@ var Qmin{Ol}>= 0;
 # 
 param ke = 168;
 
-# Variaveis para GD
- 
-param Pgdmin{Ob} = 0; # Pot min ativa injetada pela GD
-param Pgdmax{Ob} = 1000; # Pot max ativa injetada pela GD
-var Pgd{Ob}; # Pot ativa injetada pela GD
-#var Qgd{Ol}; # Pot reativa injetada pela GD
-param Ndg = 2;
-var Wgd{Ob}, binary;
-param fp = tan(acos(0.95)); 
-param custoGD = 10000;
-param idf = 0.1; # para considerar o retorno do capital em 20 anos 
+
 #-------------------------------------------------------------------
 #-- Funcao Objetivo --#
 
@@ -97,15 +87,15 @@ minimize FuncaoObjetivo: (sum{(i, j) in Ol}(R[i, j] * Isqr[i, j]));
 
 #Balanco de Potencia Ativa
 subject to BalancoPotenciaAtiva{i in Ob}:
-	sum{(k,i) in Ol}(P[k,i]) - sum{(i,j) in Ol}( P[i,j] + R[i,j]*Isqr[i,j] ) + PS[i] +  Pgd[i] = PD[i];
+	sum{(k,i) in Ol}(P[k,i]) - sum{(i,j) in Ol}( P[i,j] + R[i,j]*Isqr[i,j] ) + PS[i]= PD[i];
 
 #Balanco de Potencia Reativa
 subject to BalancoPotenciaReativa{i in Ob}:
-	sum{(k,i) in Ol}(Q[k,i]) - sum{(i,j) in Ol}( Q[i,j] + X[i,j] * Isqr[i,j] ) + QS[i] +(Pgd[i]*fp)  = QD[i];
+	sum{(k,i) in Ol}(Q[k,i]) - sum{(i,j) in Ol}( Q[i,j] + X[i,j] * Isqr[i,j] ) + QS[i]  = QD[i];
 	
 #Queda de Tensao no circuito
 subject to QuedaTensao{(i,j) in Ol}:
-	Vsqr[i] - 2*(R[i,j] * P[i,j] + X[i,j]*Q[i,j]) - Z2[i,j] * Isqr[i,j] - Vsqr[j] - b[i,j]= 0;
+	Vsqr[i] - 2*(R[i,j] * P[i,j] + X[i,j]*Q[i,j]) - Z2[i,j] * Isqr[i,j] - Vsqr[j] - b[i,j] = 0;
 	
 #Potencia aparente (kVA)
 subject to PotenciaAparente{(i,j) in Ol}:
@@ -148,7 +138,6 @@ subject to Radial:
 # direção do fluxo de potência no ramo ij	
 subject to Dfluxo{(i,j) in Ol}:
 	(ymax[i,j] + ymin[i,j]) <= 1; 
-	
 	
 #---------------------------------------------------------------
 # Limite das tensoes
@@ -207,16 +196,3 @@ subject to LinearizacaoP3{(i,j) in Ol, y in 1..Y}:
  subject to LinearizacaoQ3{(i,j) in Ol, y in 1..Y}:
   DQ[i,j,y]<= DS[i,j];
   
-  
-# ---------------------------------------------------------
- # Equações da GD
-  # Equações da GD
-    # Equações da GD
- subject to GD1{i in Ob}:
- Pgdmin[i] * Wgd[i] <= Pgd[i];
- 
- subject to GD2{i in Ob}:
- Pgdmax[i] * Wgd[i] >= Pgd[i];
- 
- subject to GD3:
- sum{i in Ob}(Wgd[i]) <= Ndg;

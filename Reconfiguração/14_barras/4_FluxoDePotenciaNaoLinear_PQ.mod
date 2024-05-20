@@ -52,7 +52,7 @@ param N = card(Ob);
 
 # Para a linearização Vsqr * Isqr
 
-param S = 3;
+param S = 0;
 param DeltaV = (Vmax^2-Vmin^2)/(S+1);
 var xv{Ob, s in 1..S}, binary;
 var Pc{Ob, s in 1..S};
@@ -136,8 +136,8 @@ subject to Radial:
 	sum{(i,j) in Ol}(ymax[i,j] + ymin[i,j]) = N - 1;
 	
 # direção do fluxo de potência no ramo ij	
-#subject to Dfluxo{(i,j) in Ol}:
-#	(ymax[i,j] + ymin[i,j]) <= 1; 
+subject to Dfluxo{(i,j) in Ol}:
+	(ymax[i,j] + ymin[i,j]) <= 1; 
 	
 #---------------------------------------------------------------
 # Limite das tensoes

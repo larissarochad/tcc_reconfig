@@ -1,13 +1,12 @@
+reset;
+
+
+#--------------------
+# incluir o modrlo matematico
+#--------------------r
 
 reset;
 
-#--------------------
-# incluir o modelo matematico
-#--------------------
-
-reset;
-
-#--------------------
 # incluir o modelo matematico
 #--------------------
 
@@ -17,7 +16,7 @@ include 4_FluxoDePotenciaNaoLinear_PQ.mod;
 
 #--------------------
 # dados do sistema
-#--------------------
+#--------------------r
 
 data;
 
@@ -28,9 +27,9 @@ include 69_barras.dat;
 
 
 option solver cplexamp;
-option presolve_eps 8.53e-15;
+option presolve_eps 8.53e-15 ;
 solve FuncaoObjetivo;
-option cplex_options "time=1000";
+option cplex_options "time=1000 mipdisplay = 2 "; 
 
 param Vpu{Ob};
 param Pperdas{Ol}; # Perda de potencia ativa nas linhas
@@ -77,11 +76,12 @@ printf'|-------|-------|-----------|-----------|------------|--------------|----
 for{(i,j) in Ol}{
 	printf'|%6d |%6d |%10.4f |%10.4f |%11.4f |%13.4f |%15.4f |\n', i, j, sqrt(Isqr[i,j]), P[i,j], Q[i,j], Pperdas[i,j], Qperdas[i,j];
 }
-#printf'|-------|-------|-----------|-----------|------------|--------------|----------------|\n';
+#printf'|-------|-------|-----------|-	----------|------------|--------------|----------------|\n';
 printf'------------------------------------------------------------------------------\n';
 
 printf'\n\n';
 
 
 printf' Pperdas = %13.4f\n', sum{(i,j) in Ol}( Pperdas[i,j] );
+
 

@@ -20,7 +20,8 @@ include 4_FluxoDePotenciaNaoLinear_PQ.mod;
 
 data;
 
-include 33_barras.dat;
+#include 33_barras.dat;
+include 14_barras.dat;
 
 #--------------------
 # solucionador
@@ -91,12 +92,5 @@ for{(i,j) in Ol}{
 	printf '\n %d \n', linha[i,j]; 
 	
 	}
-}
-
-#para imprimir a barra que está ativa a gd
-
-#para imprimir a barra que está ativa a gd
-for {i in Ob: Wgd[i] == 1}{
-    printf "%d: Wgd = %f, Pgd = %f,  Qgd = %f \n ", i, Wgd[i], Pgd[i], Qgd[i];
 }
 
