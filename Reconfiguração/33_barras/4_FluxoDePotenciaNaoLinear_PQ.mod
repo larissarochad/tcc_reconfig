@@ -52,7 +52,7 @@ param N = card(Ob);
 
 # Para a linearização Vsqr * Isqr
 
-param S = 0;
+param S;
 param DeltaV = (Vmax^2-Vmin^2)/(S+1);
 var xv{Ob, s in 1..S}, binary;
 var Pc{Ob, s in 1..S};
@@ -61,7 +61,7 @@ var Pc{Ob, s in 1..S};
 
 # Dados para a Linearizacao P^2 Q^2
 
-param Y = 50;
+param Y;
 param DS{Ol};
 param ms{Ol, y in 1..Y};
 
@@ -138,6 +138,16 @@ subject to Radial:
 # direção do fluxo de potência no ramo ij	
 subject to Dfluxo{(i,j) in Ol}:
 	(ymax[i,j] + ymin[i,j]) <= 1; 
+	
+#15
+subject to jabra1{i in Ob: Tb[i] == 1}:		###################################
+	sum{(i,j) in Ol}(ymax[i,j]) + sum{(j,i) in Ol}(ymin[j,i]) >= 1;
+	
+#16
+subject to jabra2{i in Ob: Tb[i] == 0}:        ####################################
+	sum{(i,j) in Ol}(ymin[i,j]) + sum{(j,i) in Ol}(ymax[j,i]) = 1;
+	
+	
 	
 #---------------------------------------------------------------
 # Limite das tensoes

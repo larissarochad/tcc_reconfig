@@ -1,198 +1,200 @@
-#------------------------------#
-# Fluxo de Potencia Linear #
-#------------------------------#
+# conjuntos
 
-#-- Definir os Conjuntos --#
+set Ob; # conjunto de barras
+set Ol within Ob cross Ob;
+set Ot; #conjunto de periodos estimados
 
-set Ob;
-set Ol within Ob cross Ob; #Conjunto das linhas, que depende de Ob
+#-------------------------------------------------------------------------------------------
+# parametros
+param Vini{Ob};
+param L{Ol};
 
-#-- Definir os Parametros --#
-# Dados das barras
-param Tb{Ob};	#Tipo de barra (1: SE, 0: Carga)
-param PD{Ob};	#Potencia ativa demandada
-param QD{Ob};	#Potencia Reativa Demandada
-param QC{Ob};	#Pot Reativa dos capacitores na barra
+#barras 
+param Tb{Ob};
+param PD{Ob};
+param QD{Ob};
+param QC{Ob};
 
+param Pd{Ob, Ot};
+param Qd{Ob, Ot};
+ 
+#lineas
+param R{Ol};
+param X{Ol};
+param Imax{Ol};
+param Z2{Ol};
+
+#para reconfiguracion
+param linea{Ol};  #los numeros de las lineas
+param N; # el numero de barras de la red
+
+#datos de tension
 param Vnom;
 param Vmin;
 param Vmax;
-param Vini{Ob};
 
-# Dados das linhas
-param R{Ol};	#Resistencia
-param X{Ol};	#Reatancia indutiva
-param Imax{Ol};	#Corrente maxima
-param Z2{Ol};	#Z^2 = R^2 + X^2
-param linha{Ol};
-param Barra_SE;
-param L{Ol};
+#para los periodos
+param Ki{Ot};
+param Si{Ot};
+param Ti{Ot};
 
-#-- Definir as Variaveis --#
+#parametros para la linealizacion
+param Y;
+param ms{Ol, Ot, y in 1..Y};
+param ds{Ol, Ot};
 
-# Vars das barras
-var PS{Ob};		#Potencia ativa
-var QS{Ob};		#Potencia reativa
-
-# Vars das linhas
-var P{Ol};		#Potencia ativa na linha
-var Q{Ol};		#Potencia reativa na linha
-
-# Tensoes e correntes
-var Isqr{Ol};		#corrente nas linhas
-var Vsqr{Ob};		#tensões nas barras
-
-# variávl auxiliar 
-var b{Ol};		
-var ymax{Ol}, binary; 
-var ymin{Ol}, binary;
-
-param N = card(Ob);
-#----------------------------------------
-
-# Para a linearização Vsqr * Isqr
-
-param S = 3;
+#parametros para la linealizacion Vsqr y Isqr
+param S;
 param DeltaV = (Vmax^2-Vmin^2)/(S+1);
-var xv{Ob, s in 1..S}, binary;
-var Pc{Ob, s in 1..S};
 
-#----------------------------------------
+#-------------------------------------------------------------------------------------------
+#variables
 
-# Dados para a Linearizacao P^2 Q^2
-
-param Y = 50;
-param DS{Ol};
-param ms{Ol, y in 1..Y};
-
-var DP{Ol, y in 1..Y} >= 0;
-var DQ{Ol, y in 1..Y} >= 0;
-
-var Pmax{Ol}>= 0;
-var Pmin{Ol}>= 0;
-var Qmax{Ol}>= 0;
-var Qmin{Ol}>= 0;
-#----------------------------------------
-
-# 
-param ke = 168;
+#variables para la linealizacion Vsqr y Isqr
+var xv{j in Ob, t in Ot, s in 1..S} binary;
+var Pc{(i,j) in Ol, t in Ot, s in 1..S} >=0;
 
 
-#-------------------------------------------------------------------
-#-- Funcao Objetivo --#
+#barras
+var PS{Ob,Ot};	#potencia activa generada en la SE
+var QS{Ob,Ot};	#potencia reactiva generada en la SE
+var Vsqr{Ob,Ot};	#tensi n en las barras de la red
 
-minimize FuncaoObjetivo: (sum{(i, j) in Ol}(R[i, j] * Isqr[i, j]));
+#lineas
+var Isqr{Ol,Ot};	#corriente en las lineas
+var P{Ol,Ot};	#potencia activa en la linea
+var Q{Ol,Ot};	#potencia reactiva en la linea
 
-#-- Restricoes --#
+#variables para la linealizacion
 
-#Balanco de Potencia Ativa
-subject to BalancoPotenciaAtiva{i in Ob}:
-	sum{(k,i) in Ol}(P[k,i]) - sum{(i,j) in Ol}( P[i,j] + R[i,j]*Isqr[i,j] ) + PS[i]= PD[i];
+var DP{Ol,Ot, y in 1..Y} >= 0;
+var DQ{Ol,Ot, y in 1..Y} >= 0;
+var Pp{Ol,Ot} >= 0;
+var Pn{Ol,Ot} >= 0;
+var Qp{Ol,Ot} >= 0;
+var Qn{Ol,Ot} >= 0;
 
-#Balanco de Potencia Reativa
-subject to BalancoPotenciaReativa{i in Ob}:
-	sum{(k,i) in Ol}(Q[k,i]) - sum{(i,j) in Ol}( Q[i,j] + X[i,j] * Isqr[i,j] ) + QS[i]  = QD[i];
+#variables para la reconfiguracion
+var b{Ol,Ot};
+var y_positivo{Ol,Ot}, binary;
+var y_negativo{Ol,Ot}, binary;
+
+#-------------------------------------------------------------------------------------------
+#Funcion objetivo
+#1
+minimize FuncionObjetivo:
+	sum {t in Ot}(Ki[t]*Ti[t]*sum{(i,j) in Ol}(R[i,j]*Isqr[i,j,t]));
+
+
+#-------------------------------------------------------------------------------------------
+
+#Restricciones
+#2
+subject to PotenciaActiva{i in Ob, t in Ot}:
+	sum{(k,i) in Ol}(P[k,i,t])- sum{(i,j) in Ol}(P[i,j,t]+R[i,j]*Isqr[i,j,t])+PS[i,t]=Pd[i,t];
 	
-#Queda de Tensao no circuito
-subject to QuedaTensao{(i,j) in Ol}:
-	Vsqr[i] - 2*(R[i,j] * P[i,j] + X[i,j]*Q[i,j]) - Z2[i,j] * Isqr[i,j] - Vsqr[j] - b[i,j] = 0;
+#3
+subject to PotenciaReactiva{i in Ob, t in Ot}:
+	sum{(k,i) in Ol}(Q[k,i,t])- sum{(i,j) in Ol}(Q[i,j,t]+X[i,j]*Isqr[i,j,t])+QC[i]+ QS[i,t]=Qd[i,t];
+
+#4 en 12
+
+#6
+subject to LimiteTension{i in Ob, t in Ot}:
+	Vmin^2 <= Vsqr[i,t] <= Vmax^2;
+
+#7	
+subject to LimiteCorriente{(i,j) in Ol, t in Ot}:	
+	Isqr[i,j,t] <= Imax[i,j]^2 * (y_positivo[i,j,t] + y_negativo[i,j,t]);
+
+#8
+subject to RestriccionLineal_p1{(i,j) in Ol, t in Ot}:
+	Pp[i,j,t] - Pn[i,j,t]=P[i,j,t];
 	
-#Potencia aparente (kVA)
-subject to PotenciaAparente{(i,j) in Ol}:
-	(Vmin^2 + 0.5 * DeltaV) * Isqr[i,j] + sum{s in 1..S}(Pc[j,s]) = sum{y in 1..Y}(ms[i,j,y]*DP[i,j,y]) + sum{y in 1..Y}(ms[i,j,y]*DQ[i,j,y]);
+#9 var definition 0 <= Pp
+subject to Restriccion_Recon_1{(i,j)in Ol, t in Ot}:
+	Pp[i,j,t]<=Vmax*Imax[i,j]*y_positivo[i,j,t];
 	
-#-------------------------------------------------------------------------------	
-# Equações de reconfiguração
-# Limite de corrente colocar variaiveis 33 ate 40 
-subject to LimiteCorrente{(i,j) in Ol}:
-	0 <= Isqr[i,j];
-subject to LimiteCorrente2{(i,j) in Ol}:
- Isqr[i,j] <= (Imax[i,j]^2)*(ymax[i,j] + ymin[i,j]); 
- 
-# Limites das variaveis Pmax
-subject to LimitePotAux{(i,j) in Ol}:
- Pmax[i,j] <= Vmax * Imax[i,j] * ymax[i,j]; 
+#10 var definition 0 <= Pn
+subject to Restriccion_Recon_2{(i,j)in Ol, t in Ot}:
+	Pn[i,j,t]<=Vmax*Imax[i,j]*y_negativo[i,j,t];
+		
+#11
+subject to Restriccion_Recon_3{(i,j) in Ol, t in Ot}:
+	-Vmax*Imax[i,j]*(y_positivo[i,j,t]+y_negativo[i,j,t]) <= Q[i,j,t];
 
-# Limites das variaveis Pmin
-subject to LimitePotAux2{(i,j) in Ol}:
-	 Pmin[i,j] <= Vmax * Imax[i,j] * ymin[i,j];
-
-# Limite da potencia reativa 
-subject to LimitePotReAux{(i,j) in Ol}:
-	-(Vmax * Imax[i,j]* (ymax[i,j] + ymin[i,j])) <= Q[i,j];
-
-subject to LimitePotReAux2{(i,j) in Ol}:
-	Q[i,j] <= (Vmax * Imax[i,j]* (ymax[i,j] + ymin[i,j]));
-
-#Limite de potencia da variavel auxiliar 
-subject to AuxB{(i,j) in Ol}: 
-	-(Vmax^2 - Vmin^2)*(1 - (ymax[i,j] + ymin[i,j])) <= b[i,j]; 
-
-subject to AuxB2{(i,j) in Ol}: 
-	b[i,j] <= (Vmax^2 - Vmin^2)*(1 - (ymax[i,j] + ymin[i,j])); 
-
-# Garante a radialidade do sistema
-subject to Radial: 
-	sum{(i,j) in Ol}(ymax[i,j] + ymin[i,j]) = N - 1;
+subject to Restriccion_Recon_4{(i,j) in Ol, t in Ot}:
+	Q[i,j,t] <= Vmax*Imax[i,j]*(y_positivo[i,j,t]+y_negativo[i,j,t]);
 	
-# direção do fluxo de potência no ramo ij	
-#subject to Dfluxo{(i,j) in Ol}:
-#	(ymax[i,j] + ymin[i,j]) <= 1; 
+#12
+subject to queda_de_tensao_1 {(i,j) in Ol, t in Ot}:
+	Vsqr[i,t] - 2 * (R[i,j] * P[i,j,t] + X[i,j] * Q[i,j,t]) - Z2[i,j] * Isqr[i,j,t] - Vsqr[j,t] 
+	>= - (Vmax^2 - Vmin^2) * (1 - (y_positivo[i,j,t]+y_negativo[i,j,t]));
 	
-#---------------------------------------------------------------
-# Limite das tensoes
-
-subject to LimiteTensao{i in Ob}:
-	Vmin^2 <= Vsqr[i] <= Vmax^2;
-
-subject to LinearizacaoP1_1{j in Ob}:
-	Vmin^2 + sum{s in 1..S}(xv[j,s] * DeltaV) <= Vsqr[j];
-
-subject to LinearizacaoP1_2{j in Ob}:
-	Vsqr[j] <= Vmin^2 + DeltaV + sum{s in 1..S}(xv[j,s] * DeltaV);
-
-#---------------------------------------------------------------
-# Potencia de correcao
-
-subject to LinearizacaoP2_1{(i,j) in Ol, s in 1..S}:
-	0 <= DeltaV * Isqr[i,j] - Pc[j,s];
-
-subject to LinearizacaoP2_2{(i,j) in Ol, s in 1..S}:
-	DeltaV * Isqr[i,j] - Pc[j,s] <= DeltaV * Imax[i,j]^2 * (1 - xv[j,s]);
-
-subject to linearizacaoP3_1{(i,j) in Ol, s in 1..S}:
-	0 <= Pc[j,s];
-
-subject to linearizacaoP3_2{(i,j) in Ol, s in 1..S}:
-	Pc[j,s] <= DeltaV * Imax[i,j]^2 * xv[j,s];
-
-#---------------------------------------------------------------
-# Variavel binaria
-subject to LinearizacaoP4{j in Ob, s in 2..S}:
-	xv[j,s] <= xv[j,s-1];
+subject to queda_de_tensao_2 {(i,j) in Ol, t in Ot}:
+	Vsqr[i,t] - 2 * (R[i,j] * P[i,j,t] + X[i,j] * Q[i,j,t]) - Z2[i,j] * Isqr[i,j,t] - Vsqr[j,t] 
+	<= (Vmax^2 - Vmin^2) * (1 - (y_positivo[i,j,t]+y_negativo[i,j,t]));
 	
+#14
+subject to Restriccion_Recon_8{(i,j) in Ol, t in Ot}:
+	(y_positivo[i,j,t] + y_negativo[i,j,t]) <=1;
+	
+#15
+subject to jabra1{i in Ob, t in Ot: Tb[i] == 1}:		###################################
+	sum{(i,j) in Ol}(y_positivo[i,j,t]) + sum{(j,i) in Ol}(y_negativo[j,i,t]) >= 1;
+	
+#16
+subject to jabra2{i in Ob, t in Ot: Tb[i] == 0}:        ####################################
+	sum{(i,j) in Ol}(y_negativo[i,j,t]) + sum{(j,i) in Ol}(y_positivo[j,i,t]) = 1;
+	
+#18
+subject to PotenciaAparente{(i,j) in Ol, t in Ot}:
+	(Vmin^2+(1/2)*DeltaV)*Isqr[i,j,t] + sum{s in 1..S}(Pc[i,j,t,s])= sum{y in 1..Y}(ms[i,j,t,y]*DP[i,j,t,y]) + sum{y in 1..Y}(ms[i,j,t,y]*DQ[i,j,t,y]);
+	
+#19a
+subject to RestriccionLineal_q1{(i,j) in Ol, t in Ot}:
+	Qp[i,j,t] - Qn[i,j,t]=Q[i,j,t];
+
+#19b
+subject to RestriccionLineal_p2{(i,j) in Ol, t in Ot}:
+	Pp[i,j,t] + Pn[i,j,t]=sum{y in 1..Y}(DP[i,j,t,y]);
+	
+#19c
+subject to RestriccionLineal_q2{(i,j) in Ol, t in Ot}:
+	Qp[i,j,t] + Qn[i,j,t]=sum{y in 1..Y}(DQ[i,j,t,y]);
+	
+#19d 0 <= DP
+subject to RestriccionLineal_p3{(i,j) in Ol, t in Ot, y in 1..Y}:
+	DP[i,j,t,y] <= ds[i,j,t];
+	
+#19e 0 <= DQ
+subject to RestriccionLineal_q3{(i,j) in Ol, t in Ot, y in 1..Y}:
+	DQ[i,j,t,y] <= ds[i,j,t];
+	
+#19f e 19g var definition
+# 20 e 21 system data	
+
+#-------------------------------------------------------------------------------------------
+#Restricciones linealizacion Vsqr[j] * Isqr[i,j]
+	
+subject to RestriccionVI_1{i in Ob, t in Ot}:
+	Vmin^2+DeltaV*sum{s in 1..S}(xv[i,t,s])<=Vsqr[i,t];
+
+subject to RestriccionVI_2{i in Ob, t in Ot}:
+	Vsqr[i,t]<=Vmin^2+ DeltaV + DeltaV*sum{s in 1..S}(xv[i,t,s]);
+		
+subject to RestriccionVI_3{i in Ob, t in Ot,s in 2..S}:
+	xv[i,t,s] <= xv[i,t,s-1];
+	
+subject to RestriccionVI_4{(i,j) in Ol, t in Ot,s in 1..S}:
+	-DeltaV * (Vmax^2)*(Imax[i,j]^2)*(1-xv[j,t,s])<= Pc[i,j,t,s] - DeltaV*Isqr[i,j,t];
+
+subject to RestriccionVI_5{(i,j) in Ol, t in Ot,s in 1..S}:
+	Pc[i,j,t,s] - DeltaV * Isqr[i,j,t] <= DeltaV *(Vmax^2)* Imax[i,j]^2 * (1-xv[j,t,s]);
+
+subject to RestriccionVI_6{(i,j) in Ol, t in Ot, s in 1..S}:
+	Pc[i,j,t,s] <= DeltaV*(Vmax^2)*(Imax[i,j]^2)*xv[j,t,s];
+
+		
 
 	
-#---------------------------------------------------------------
-#Equações de linearização	
-subject to LinearizacaoP1{(i,j) in Ol}:
- Pmax[i,j] - Pmin[i,j] = P[i,j];
- 
- 
-subject to LinearizacaoQ1{(i,j) in Ol}:
- Qmax[i,j] - Qmin[i,j] = Q[i,j];
- 
- 
-subject to LinearizacaoP2{(i,j) in Ol}:
- Pmax[i,j] + Pmin[i,j] = sum{y in 1..Y}(DP[i,j,y]);
- 
-subject to LinearizacaoQ2{(i,j) in Ol}:
- Qmax[i,j] + Qmin[i,j] =  sum{y in 1..Y}(DQ[i,j,y]);
- 
- 
-subject to LinearizacaoP3{(i,j) in Ol, y in 1..Y}:
-  DP[i,j,y]<= DS[i,j];
- 
- subject to LinearizacaoQ3{(i,j) in Ol, y in 1..Y}:
-  DQ[i,j,y]<= DS[i,j];
-  

@@ -21,13 +21,14 @@ include 4_FluxoDePotenciaNaoLinear_PQ.mod;
 data;
 
 include 33_barras.dat;
+#include 69_barras.dat;
 
 
 #--------------------
 # solucionador
 
 
-option solver cplexamp;
+option solver cplex;
 option presolve_eps 8.53e-15 ;
 solve FuncaoObjetivo;
 option cplex_options "time=1000 mipdisplay = 2 "; 
