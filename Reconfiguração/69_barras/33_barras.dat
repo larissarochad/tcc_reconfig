@@ -1,7 +1,6 @@
 param Vnom := 12.66;
 		
-param : Ot:   Ki   Si   Ti :=
-		1	  1    1.0  1;#8760;	
+
 #-----------------------------------------------------------------------
  
 param  :Ob:   Tb        PD      QD     QC:=  
@@ -82,13 +81,13 @@ param :	Ol:			linea		R		X		Imax :=
      25    29   37      0.50000         0.50000   1.200.000;
 #--------------------------------------------------------------------------------		   
 # fijar la magnitude del voltaje en la subestacion con el valor nominal 
-    fix{i in Ob, t in Ot: Tb[i] == 1}
+    fix{i in Ob: Tb[i] == 1}
 	    Vsqr[i,t] := Vnom^2;
 	
 #--------------------------------------------------------------------------------		
 # fijar la inyecci n de potencia activa en las barras de carga (y no en la subestacion) 
 
-    fix{i in Ob, t in Ot: Tb[i] == 0}
+    fix{i in Ob: Tb[i] == 0}
 	    PS[i,t] := 0;
 
 #--------------------------------------------------------------------------------		
@@ -107,14 +106,6 @@ for {(i,j) in Ol} {
 };
 
 #-----------------------------
-# unidades
-
-# Voltaje  = kV
-# R, X = ohm;
-
-# lei de ohm
-
-#  V(kV) = I(A) x { R(ohm) / 1000 }
 
 #--------------------------------------------------------------------------------
 for {i in Ob, t in Ot} {

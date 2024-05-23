@@ -1,9 +1,16 @@
+#-------------------------------------------------------------
+# Lucca Rodrigues Pinto
 
-param Vnom := 12.66;
- param Barra_SE := 1;
-     
-#-----------------------------------------------------------------------
- 
+#-------------------------------------------------------------
+# Ob: conjunto de barras da rede
+# Tb: tipo de barra
+# PD: potencia ativa demanda
+# QD: potencia reativa demanda
+# QC: bancos capacitivos instalados na rede
+# Tb = 1 subestacão (tipo de barra)
+# Tb = 0 barra de carga (tipo de barra)
+# as cargas estao dadas em (P=kW, Q=kVAr)
+
 param	   :Ob:  PD			QD		Tb:=
           1      0          0        1
           2    100         60        0
@@ -80,23 +87,16 @@ param :     Ol: 	  linha	 R				X			Imax:=
          12     22   35      2.00000         2.00000  	1000
          18     33   36      0.50000         0.50000  	1000
          25     29   37      0.50000         0.50000 	1000;
-#--------------------------------------------------------------------------------  
-#fixar a magnitude de tensao da subestaçaoao no valor nominal
-fix  { i in Ob: i == Barra_SE}
-      Vsqr[i] := Vnom^2;
 
-#--------------------------------------------------------------------------------
-#fixar a injecao de potencia ativa no no de carga igual a zero
-    fix  {i in Ob: i != Barra_SE }
-   PS[i] := 0;
+#-------------------------------------------------------------
 
-#--------------------------------------------------------------------------------
-#fixar a injecao de potencia reativa no no de carga igual a zero
-    fix  {i in Ob: i != Barra_SE }
-   QS[i] := 0;
+# dados das tensoes
+let Vnom := 12.66; # (kV) tensao nominal da rede
+let Vmin := 0.9378 * Vnom;
+let Vmax := 1.0 * Vnom;
 
-#--------------------------------------------------------------------------------
-#normalizacao e calculo da impedancia ao quadrado
+#-------------------------------------------------------------
+#
 
 for {(i,j) in Ol} {
 	let R[i,j] := R[i,j] / 1000;
@@ -104,22 +104,39 @@ for {(i,j) in Ol} {
 	let Z2[i,j] := R[i,j]^2 + X[i,j]^2;
 }
 
-#--------------------------------------------------------------------------------
+#-------------------------------------------------------------
+# Fixar a potencia ativa e reativa das barras de carga
 
-let Vmax   := Vnom * 1.0;
-let Vmin   := Vnom * 0.9254;
+# potencia ativa
+fix{i in Ob: Tb[i] == 0}
+	PS[i] := 0;
 
-let Y:= 50;
+# potencia reativa
+fix{i in Ob: Tb[i] == 0}
+	QS[i] := 0;
+	
+#-------------------------------------------------------------
 
+# fixar a tensao na subestacao
+fix{i in Ob: Tb[i] == 1}
+	Vsqr[i] := Vnom^2;
+
+#-------------------------------------------------------------
 # Linearizacao
+let Y:= 100;
 for{(i,j) in Ol}{
-let DS[i,j] := (Vmax * Imax[i,j]) / Y;
 
-for {y in 1..Y}{
-let ms[i,j,y] := (2*y-1)*DS[i,j];
+	#------------------------------------------
+	# Calcular o Delsa S ==> DS
+	let deltaS[i,j] := (Vmax * Imax[i,j]) / Y;
+	
+	#------------------------------------------
+	# Calcular o ms
+	for{y in 1..Y}{
+		let ms[i,j,y] := (2*y-1)*deltaS[i,j];
+	}
+	
+	let ms[i,j,1] := ms[i,j,1] * 5/6;
 }
-let ms[i,j,1] := ms[i,j,1] * 5/6;
-}
-
 
 let S := 0;

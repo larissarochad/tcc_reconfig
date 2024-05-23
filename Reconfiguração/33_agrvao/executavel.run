@@ -1,46 +1,40 @@
-reset;
+#--------------------
+# Lucca Rodrigues Pinto
 
+reset;
 
 #--------------------
-# incluir o modrlo matematico
-#--------------------r
-
-reset;
-
 # incluir o modelo matematico
 #--------------------
 
 model;
 
-include 4_FluxoDePotenciaNaoLinear_PQ.mod;
+include Reconfiguracao_Linear_33.mod;
 
 #--------------------
 # dados do sistema
-#--------------------r
+#--------------------
 
 data;
 
-#include 33_barras.dat;
-#include 69_barras.dat;
-include 119_barras.dat;
-
+include 33_barras.dat;
 
 #--------------------
 # solucionador
 
-
 option solver cplex;
-option presolve_eps 8.53e-15 ;
+option presolve_eps 8.53e-15;
 solve FuncaoObjetivo;
-option cplex_options "time=1000 mipdisplay = 2 "; 
 
 param Vpu{Ob};
 param Pperdas{Ol}; # Perda de potencia ativa nas linhas
 param Qperdas{Ol}; # Perda de potencia reativa nas linhas
 
+option log_file "resultados_reconfiguracao_novo.txt";
+
 printf'\n\n';
 printf'|-------------------------------------|\n';
-printf'|  Solucao do Fluxo de potencia para  |\n';
+printf'|    Solucao da reconfiguracao para   |\n';
 printf'| Sistemas de distribuicao de energia |\n';
 printf'|-------------------------------------|\n';
 
@@ -57,10 +51,10 @@ printf'|   Barra   |  V [kV]   |  V [p.u.]   |\n';
 printf'|-----------|-----------|-------------|\n';
 
 for{i in Ob}{
-	printf'%10d  %10.4f  %12.4f \n', i, sqrt(Vsqr[i]), Vpu[i];
+	printf'|%10d |%10.4f |%12.4f |\n', i, sqrt(Vsqr[i]), Vpu[i];
 }
-#printf'|-----------|-----------|-------------|\n';
-printf'-----------------------------------\n';
+printf'|-----------|-----------|-------------|\n';
+
 #--------------------
 # Calcular as perdas nas linhas
 
@@ -79,20 +73,26 @@ printf'|-------|-------|-----------|-----------|------------|--------------|----
 for{(i,j) in Ol}{
 	printf'|%6d |%6d |%10.4f |%10.4f |%11.4f |%13.4f |%15.4f |\n', i, j, sqrt(Isqr[i,j]), P[i,j], Q[i,j], Pperdas[i,j], Qperdas[i,j];
 }
-#printf'|-------|-------|-----------|-	----------|------------|--------------|----------------|\n';
-printf'------------------------------------------------------------------------------\n';
+printf'|-------|-------|-----------|-----------|------------|--------------|----------------|\n';
 
 printf'\n\n';
 
+param PerdaTotal;
+let PerdaTotal := sum{(i,j) in Ol}(Pperdas[i,j]);
+printf'Para S = %d e Y = %d\nPerda Total = %f', S, Y, PerdaTotal;
 
-printf' Pperdas = %13.4f\n', sum{(i,j) in Ol}( Pperdas[i,j] );
+printf'\n\n';
 
-
-
+printf'Linhas desconectadas:';
 for{(i,j) in Ol}{
-	if(ymax[i,j] == 0 && ymin[i,j] == 0) then {
-	printf '\n %d \n', linha[i,j]; 
-	
-	}
+	if (ymais[i,j] == 0 and ymenos[i,j] == 0) then
+		printf'\n%d', linha[i,j];
 }
 
+printf "\n\nTempo do solucionador: %f s\n\n", _total_solve_elapsed_time;
+
+# imprimindo as linhas desconectadas
+#display {(i,j) in Ol: (ymais[i,j] == 0 and ymenos[i,j] == 0)};
+
+option log_file ""; 
+close;

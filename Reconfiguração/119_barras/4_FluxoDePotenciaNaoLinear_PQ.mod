@@ -51,8 +51,7 @@ param N = card(Ob);
 #----------------------------------------
 
 # Para a linearização Vsqr * Isqr
-
-param S = 0;
+param S;
 param DeltaV = (Vmax^2-Vmin^2)/(S+1);
 var xv{Ob, s in 1..S}, binary;
 var Pc{Ob, s in 1..S};
@@ -61,7 +60,7 @@ var Pc{Ob, s in 1..S};
 
 # Dados para a Linearizacao P^2 Q^2
 
-param Y = 100;
+param Y;
 param DS{Ol};
 param ms{Ol, y in 1..Y};
 
